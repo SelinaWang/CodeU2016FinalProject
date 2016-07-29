@@ -12,7 +12,10 @@
 hs_err_pid*
 
 
-javacs-lab12/out
+javacs-finalproject/out
+javacs-finalproject/junit
+javacs-finalproject/javacs-lab12.iml
 .idea
+
 
 .javac-lab12.iml
