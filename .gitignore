@@ -16,6 +16,6 @@ hs_err_pid*
 javacs-finalproject/out
 javacs-finalproject/junit
 javacs-finalproject/bin
-javacs-finalproject/javacs-lab12.iml
+javacs-finalproject/src/javacs-lab12.iml
 .idea
 .DS_Store

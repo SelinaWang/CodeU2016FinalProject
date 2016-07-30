@@ -25,7 +25,7 @@ public class WikiFetcher {
 	 * @throws IOException
 	 */
 	public Elements fetchWikipedia(String url) throws IOException {
-
+/**
 		sleepIfNeeded();
 
 		// download and parse the document
@@ -38,6 +38,18 @@ public class WikiFetcher {
 		// TODO: avoid selecting paragraphs from sidebars and boxouts
 		Elements paras = content.select("p");
 		return paras;
+ **/
+		sleepIfNeeded();
+
+		Connection conn = Jsoup.connect(url);
+		Document doc = conn.get();
+
+		Elements body = doc.select("body");
+
+		//Elements body = doc.select("body content a");
+
+		return body;
+
 	}
 
 	/**
@@ -81,5 +93,24 @@ public class WikiFetcher {
 			}
 		}
 		lastRequestTime = System.currentTimeMillis();
+	}
+
+	public static void main(String[] arsg) {
+
+		WikiFetcher test = new WikiFetcher();
+		String url = "http://stackoverflow.com/";
+
+		Elements testElements = null;
+
+		try {
+			testElements = test.fetchWikipedia(url);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		for(Element link : testElements) {
+			System.out.println(link.toString());
+		}
+
 	}
 }
