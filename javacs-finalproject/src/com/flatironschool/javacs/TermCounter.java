@@ -46,10 +46,12 @@ public class TermCounter {
 	/**
 	 * Takes a collection of Elements and counts their words.
 	 * 
-	 * @param paragraphs
+	 * @param contents
 	 */
-	public void processElements(Elements paragraphs) {
-		for (Node node: paragraphs) {
+	public void processElements(Elements contents) {
+
+		for (Node node: contents) {
+			System.out.println(node.toString());
 			processTree(node);
 		}
 	}
@@ -135,18 +137,4 @@ public class TermCounter {
 		System.out.println("Total of all counts = " + size());
 	}
 
-	/**
-	 * @param args
-	 * @throws IOException 
-	 */
-	public static void main(String[] args) throws IOException {
-		String url = "https://en.wikipedia.org/wiki/Java_(programming_language)";
-		
-		WikiFetcher wf = new WikiFetcher();
-		Elements paragraphs = wf.fetchWikipedia(url);
-		
-		TermCounter counter = new TermCounter(url.toString());
-		counter.processElements(paragraphs);
-		counter.printCounts();
-	}
 }

@@ -9,10 +9,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
+import sun.jvm.hotspot.debugger.Page;
 
 /**
  * Represents a Redis-backed web search index.
@@ -28,6 +30,7 @@ public class JedisIndex {
 	 * @param jedis
 	 */
 	public JedisIndex(Jedis jedis) {
+
 		this.jedis = jedis;
 	}
 	
@@ -37,6 +40,7 @@ public class JedisIndex {
 	 * @return Redis key.
 	 */
 	private String urlSetKey(String term) {
+
 		return "URLSet:" + term;
 	}
 	
@@ -49,6 +53,10 @@ public class JedisIndex {
 		return "TermCounter:" + url;
 	}
 
+
+	private String pageRankKey(String term) {
+		return "PageRank:" + term;
+	}
 	/**
 	 * Checks whether we have a TermCounter for a given URL.
 	 * 
@@ -67,6 +75,7 @@ public class JedisIndex {
 	 * @param tc
 	 */
 	public void add(String term, TermCounter tc) {
+
 		jedis.sadd(urlSetKey(term), tc.getLabel());
 	}
 
@@ -145,17 +154,45 @@ public class JedisIndex {
 	 * Add a page to the index.
 	 * 
 	 * @param url         URL of the page.
-	 * @param paragraphs  Collection of elements that should be indexed.
+	 * @param aListElements - question,answers, and related.
 	 */
-	public void indexPage(String url, Elements paragraphs) {
+	public void indexPage(String url, List<Elements> aListElements, Elements relatedTerms) {
 		System.out.println("Indexing " + url);
 		
 		// make a TermCounter and count the terms in the paragraphs
+		// make a PageRacnker and count the terms in the header question, linked questions, and related questions.
 		TermCounter tc = new TermCounter(url);
-		tc.processElements(paragraphs);
-		
+		PageRanker pr = new PageRanker(url);
+
+
+		//processing for Termcounter and PageRacnker
+		for(Elements elements : aListElements) {
+			tc.processElements(elements);
+		}
+
+		pr.processElements(relatedTerms);
+
+
 		// push the contents of the TermCounter to Redis
 		pushTermCounterToRedis(tc);
+
+		// push the contets of the PageRacnker to Redis
+		pushPageRackerToRedis(pr);
+	}
+
+
+	public void pushPageRackerToRedis(PageRanker pr) {
+
+
+		String url = pr.getURL();
+
+
+		Transaction t = jedis.multi();
+		for(String term : pr.keySet()) {
+			System.out.println(term);
+			t.zincrby(pageRankKey(term), pr.get(term), url);
+		}
+		t.exec();
 	}
 
 	/**
@@ -165,13 +202,15 @@ public class JedisIndex {
 	 * @return List of return values from Redis.
 	 */
 	public List<Object> pushTermCounterToRedis(TermCounter tc) {
-		Transaction t = jedis.multi();
-		
+
 		String url = tc.getLabel();
 		String hashname = termCounterKey(url);
 		
 		// if this page has already been indexed; delete the old hash
-		t.del(hashname);
+		if(isIndexed(url))
+			jedis.del(hashname);
+
+		Transaction t = jedis.multi();
 
 		// for each term, add an entry in the termcounter and a new
 		// member of the index
@@ -179,11 +218,8 @@ public class JedisIndex {
 			Integer count = tc.get(term);
 			t.hset(hashname, term, count.toString());
 			t.sadd(urlSetKey(term), url);
-			/*
-			for related in RelatedQuestions:
-				t.zincrby("PageRank:"+term, related, 1)
-			 */
 		}
+
 		List<Object> res = t.exec();
 		return res;
 	}
@@ -236,6 +272,7 @@ public class JedisIndex {
 	 * @return
 	 */
 	public Set<String> urlSetKeys() {
+
 		return jedis.keys("URLSet:*");
 	}
 
@@ -247,6 +284,7 @@ public class JedisIndex {
 	 * @return
 	 */
 	public Set<String> termCounterKeys() {
+
 		return jedis.keys("TermCounter:*");
 	}
 
@@ -303,12 +341,13 @@ public class JedisIndex {
 	 * @throws IOException 
 	 */
 	public static void main(String[] args) throws IOException {
+
 		Jedis jedis = JedisMaker.make();
 		JedisIndex index = new JedisIndex(jedis);
-		
-		//index.deleteTermCounters();
-		//index.deleteURLSets();
-		//index.deleteAllKeys();
+
+		index.deleteTermCounters();
+		index.deleteURLSets();
+		index.deleteAllKeys();
 		loadIndex(index);
 		
 		Map<String, Integer> map = index.getCountsFaster("the");
@@ -324,14 +363,19 @@ public class JedisIndex {
 	 * @throws IOException
 	 */
 	private static void loadIndex(JedisIndex index) throws IOException {
-		WikiFetcher wf = new WikiFetcher();
+		SOFFetcher wf = new SOFFetcher();
 
-		String url = "https://en.wikipedia.org/wiki/Java_(programming_language)";
-		Elements paragraphs = wf.readWikipedia(url);
-		index.indexPage(url, paragraphs);
+		List<Elements> list = new ArrayList<Elements>();
+
+		String url = "http://stackoverflow.com/questions/450903/how-to-make-div-not-larger-than-its-contents?rq=1";
+		Document doc = wf.getDocument(url);
+
+		list.add(wf.readStackoverflow(doc, "question"));
+		list.add(wf.readStackoverflow(doc, "answer"));
+		index.indexPage(url, list, wf.allRelatedAndLinked(doc));
 		
-		url = "https://en.wikipedia.org/wiki/Programming_language";
-		paragraphs = wf.readWikipedia(url);
-		index.indexPage(url, paragraphs);
+		//url = "https://en.wikipedia.org/wiki/Programming_language";
+		//paragraphs = wf.readWikipedia(url);
+		//index.indexPage(url, paragraphs);
 	}
 }
