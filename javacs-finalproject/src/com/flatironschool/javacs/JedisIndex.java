@@ -130,7 +130,7 @@ public class JedisIndex {
 		Map<String, Integer> map = new HashMap<String, Integer>();
 		int i = 0;
 		for (String url: urls) {
-			System.out.println(url);
+			//System.out.println(url);
 			Integer count = new Integer((String) res.get(i++));
 			map.put(url, count);
 		}
@@ -154,7 +154,8 @@ public class JedisIndex {
 	 * Add a page to the index.
 	 * 
 	 * @param url         URL of the page.
-	 * @param aListElements - question,answers, and related.
+	 * @param aListElements - List of Elements of question and answers
+	 * @param relatedTerms -  linked and related terms
 	 */
 	public void indexPage(String url, List<Elements> aListElements, Elements relatedTerms) {
 		System.out.println("Indexing " + url);
@@ -181,17 +182,24 @@ public class JedisIndex {
 	}
 
 
+	/**
+	 *  Pushes the contents of PageRacker to Redis
+	 * @param pr
+     */
 	public void pushPageRackerToRedis(PageRanker pr) {
 
 
 		String url = pr.getURL();
 
-
 		Transaction t = jedis.multi();
+
+
+		//used the jedis data structure called sorted set.
 		for(String term : pr.keySet()) {
-			System.out.println(term);
+			//System.out.println(term);
 			t.zincrby(pageRankKey(term), pr.get(term), url);
 		}
+
 		t.exec();
 	}
 
@@ -342,6 +350,7 @@ public class JedisIndex {
 	 */
 	public static void main(String[] args) throws IOException {
 
+		//test here
 		Jedis jedis = JedisMaker.make();
 		JedisIndex index = new JedisIndex(jedis);
 

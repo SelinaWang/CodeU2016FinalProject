@@ -115,9 +115,7 @@ public class SOFFetcher {
 			e.printStackTrace();
 		}
 
-		for(Element el : all) {
-			System.out.println(el.text());
-		}
+
 
 	}
 }
