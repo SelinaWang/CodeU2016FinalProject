@@ -1,7 +1,12 @@
 package com.flatironschool.javacs;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import redis.clients.jedis.Jedis;
@@ -33,7 +38,7 @@ public class WikiSearch {
 	 */
 	public Integer getRelevance(String url) {
 		Integer relevance = map.get(url);
-		return relevance == null ? 0: relevance;
+		return relevance==null ? 0: relevance;
 	}
 	
 	/**
@@ -55,29 +60,12 @@ public class WikiSearch {
 	 * @return New WikiSearch object.
 	 */
 	public WikiSearch or(WikiSearch that) {
-        // FILL THIS IN!
-
-		Map<String, Integer> result = new HashMap<>();
-
-		for(String key : map.keySet()) {
-
-			//adding intersection
-			if(that.getRelevance(key) != 0 ) {
-				result.put(key, that.getRelevance(key) + map.get(key));
-			}else {
-				//adding map key that is not intersected with that.map.key
-				result.put(key, map.get(key));
-			}
+		Map<String, Integer> union = new HashMap<String, Integer>(map);
+		for (String term: that.map.keySet()) {
+			int relevance = totalRelevance(this.getRelevance(term), that.getRelevance(term));
+			union.put(term, relevance);
 		}
-
-		//adding that.map key that is not intersected with map.key
-		for(String key : that.map.keySet()) {
-			if(!result.containsKey(key)) {
-				result.put(key, that.getRelevance(key));
-			}
-		}
-
-		return new WikiSearch(result);
+		return new WikiSearch(union);
 	}
 	
 	/**
@@ -87,19 +75,14 @@ public class WikiSearch {
 	 * @return New WikiSearch object.
 	 */
 	public WikiSearch and(WikiSearch that) {
-        // FILL THIS IN!
-
-		Map<String, Integer> result = new HashMap<>();
-
-		for(String key : map.keySet()) {
-
-			//adding intersection
-			if(that.getRelevance(key) != 0 ) {
-				result.put(key, that.getRelevance(key) + map.get(key));
+		Map<String, Integer> intersection = new HashMap<String, Integer>();
+		for (String term: map.keySet()) {
+			if (that.map.containsKey(term)) {
+				int relevance = totalRelevance(this.map.get(term), that.map.get(term));
+				intersection.put(term, relevance);
 			}
 		}
-
-		return new WikiSearch(result);
+		return new WikiSearch(intersection);
 	}
 	
 	/**
@@ -109,19 +92,11 @@ public class WikiSearch {
 	 * @return New WikiSearch object.
 	 */
 	public WikiSearch minus(WikiSearch that) {
-        // FILL THIS IN!
-
-		Map<String, Integer> result = new HashMap<>();
-
-		for(String key : map.keySet()) {
-
-			//adding intersection
-			if (that.getRelevance(key) == 0) {
-				result.put(key, map.get(key));
-			}
+		Map<String, Integer> difference = new HashMap<String, Integer>(map);
+		for (String term: that.map.keySet()) {
+			difference.remove(term);
 		}
-
-		return new WikiSearch(result);
+		return new WikiSearch(difference);
 	}
 	
 	/**
@@ -142,20 +117,26 @@ public class WikiSearch {
 	 * @return List of entries with URL and relevance.
 	 */
 	public List<Entry<String, Integer>> sort() {
-        // FILL THIS IN!
-		List<Entry<String, Integer>> result = new LinkedList<>(map.entrySet());
+		// NOTE: this can be done more concisely in Java 8.  See
+		// http://stackoverflow.com/questions/109383/sort-a-mapkey-value-by-values-java
 
+		// make a list of entries
+		List<Entry<String, Integer>> entries = 
+				new LinkedList<Entry<String, Integer>>(map.entrySet());
+		
+		// make a Comparator object for sorting
 		Comparator<Entry<String, Integer>> comparator = new Comparator<Entry<String, Integer>>() {
-			@Override
-			public int compare(Entry<String, Integer> o1, Entry<String, Integer> o2) {
-				return o1.getValue().compareTo(o2.getValue());
-			}
-		};
+            @Override
+            public int compare(Entry<String, Integer> e1, Entry<String, Integer> e2) {
+                return e1.getValue().compareTo(e2.getValue());
+            }
+        };
+        
+        // sort and return the entries
+		Collections.sort(entries, comparator);
+		return entries;
+	}
 
-		Collections.sort(result, comparator);
-
-		return result;
- 	}
 
 	/**
 	 * Performs a search and makes a WikiSearch object.
