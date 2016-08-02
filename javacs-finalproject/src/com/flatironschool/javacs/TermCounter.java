@@ -51,7 +51,7 @@ public class TermCounter {
 	public void processElements(Elements contents) {
 
 		for (Node node: contents) {
-			System.out.println(node.toString());
+			//System.out.println(node.toString());
 			processTree(node);
 		}
 	}

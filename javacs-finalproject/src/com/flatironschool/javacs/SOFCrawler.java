@@ -50,6 +50,8 @@ public class SOFCrawler {
         List<Elements> eleList = new ArrayList<>();
         eleList.addAll(Arrays.asList(wf.readStackoverflow(doc, "question"), wf.readStackoverflow(doc, "answer")));
         //when index, figure out which part to index
+
+
         index.indexPage(url, eleList, wf.allRelatedAndLinked(doc));
 
         findInternalLinks(contents);
@@ -72,30 +74,13 @@ public class SOFCrawler {
 
                         if(possibleLink.startsWith("/questions/") && !possibleLink.startsWith("/questions/tagged/")) {
                             String newURL = "https://stackoverflow.com" + possibleLink;
-                            System.out.println(newURL);
+                            //System.out.println(newURL);
                             urls.offer(newURL);
                         }
                     }
                 }
 
         }
-
-    }
-
-    public static void main(String[] args) throws IOException {
-
-        Jedis jedis = JedisMaker.make();
-        JedisIndex index = new JedisIndex(jedis);
-
-        SOFCrawler test = new SOFCrawler("https://stackoverflow.com", index);
-
-/** testing
-        for(int i = 0; i < 100; i++) {
-            String res = test.crawl();
-            if(res == null)
-                i--;
-        }
- **/
 
     }
 

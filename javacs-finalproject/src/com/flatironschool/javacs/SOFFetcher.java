@@ -57,21 +57,31 @@ public class SOFFetcher {
 	public Elements allRelatedAndLinked(Document doc) throws IOException {
 
 		Elements all = new Elements();
-		all.addAll(readHeader(doc));
-		all.addAll(relatedAndLinked(doc));
+		Elements headerElements = readHeader(doc);
+		Elements relatedLinked = relatedAndLinked(doc);
+
+
+		if(headerElements != null ) {
+			all = headerElements;
+		}
+		if(relatedLinked != null) {
+			all.addAll(relatedLinked);
+		}
 
 		return all;
 	}
 
 	private Elements readHeader(Document doc) throws IOException {
 
-		Elements headers = doc.getElementById("question-header").select("h1");
+		Element questionHeader = doc.getElementById("question-header");
+		Elements headers = questionHeader == null? null : questionHeader.select("h1");
 		return headers;
 	}
 
 	private Elements relatedAndLinked(Document doc) throws IOException {
 
 		Elements linked = doc.getElementsByClass("question-hyperlink");
+		//System.out.println(linked.toString());
 		return linked;
 	}
 

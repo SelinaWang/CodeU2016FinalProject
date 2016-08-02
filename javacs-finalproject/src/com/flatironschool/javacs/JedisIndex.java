@@ -171,14 +171,16 @@ public class JedisIndex {
 			tc.processElements(elements);
 		}
 
-		pr.processElements(relatedTerms);
-
+		if(relatedTerms != null) {
+			pr.processElements(relatedTerms);
+			// push the contets of the PageRacnker to Redis
+			pushPageRackerToRedis(pr);
+		}
 
 		// push the contents of the TermCounter to Redis
 		pushTermCounterToRedis(tc);
 
-		// push the contets of the PageRacnker to Redis
-		pushPageRackerToRedis(pr);
+
 	}
 
 
