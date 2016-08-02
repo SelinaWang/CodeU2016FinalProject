@@ -1,6 +1,5 @@
 package com.flatironschool.javacs;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -64,7 +63,7 @@ public class TermCounter {
 	public void processTree(Node root) {
 		// NOTE: we could use select to find the TextNodes, but since
 		// we already have a tree iterator, let's use it.
-		for (Node node: new WikiNodeIterable(root)) {
+		for (Node node: new SOFNodeIterable(root)) {
 			if (node instanceof TextNode) {
 				processText(((TextNode) node).text());
 			}
