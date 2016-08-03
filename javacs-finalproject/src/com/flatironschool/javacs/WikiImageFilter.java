@@ -25,15 +25,15 @@ public class WikiImageFilter {
 	public void filterImages(Elements images) {
 		// check each image for nsfw content
 		// establish api connection at some point?
-		List<String> urlList = new ArrayList<String>();
+		List<String> srcList = new ArrayList<String>();
 
 		for (Element image: images) {
 			String imgURL = image.absUrl("src");
-			urlList.add(imgURL);
+			srcList.add(imgURL);
 		}
 
-		for (String url: urlList) {
-
+		for (String src: srcList) {
+			// do stuff?
 		}
 	}
 
