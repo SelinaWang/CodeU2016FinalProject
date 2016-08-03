@@ -42,8 +42,8 @@ public class PageRanker {
     }
 
     /**
-     * Takes a collection of Elements and counts their words.
-     *
+     * Takes Element and counts their words.
+     * Element - the question
      * @param contents
      */
     public void processElements(Element contents) {
