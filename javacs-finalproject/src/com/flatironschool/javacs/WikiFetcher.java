@@ -41,6 +41,25 @@ public class WikiFetcher {
 	}
 
 	/**
+	 * Fetches and parses a URL string; returns a list of image elements
+	 *
+	 *
+	 */
+
+	public Elements fetchImages(String url) throws IOException {
+
+		sleepIfNeeded();
+
+		Connection conn = Jsoup.connect(url);
+		Document doc = conn.get();
+
+		Element content = doc.getElementById("mw-content-text");
+
+		Elements imgs = content.select("img");
+		return imgs;
+	}
+
+	/**
 	 * Reads the contents of a Wikipedia page from src/resources.
 	 *
 	 * @param url
