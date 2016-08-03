@@ -14,9 +14,12 @@ import java.util.Set;
 public class TfIdf {
 
     private Jedis jedis;
-    private DecimalFormat f = new DecimalFormat("##.00");
-    Map<String, String> idf;
+
     private double totalDocuments; //total number of documents that is indexed - number of keys in TermCounters
+    private Map<String, String> idf; //Map term to idf score
+
+    private DecimalFormat f = new DecimalFormat("##.00");
+
 
     public TfIdf(Jedis jedis) {
 
@@ -25,23 +28,31 @@ public class TfIdf {
         totalDocuments = jedis.keys("TermCounter:*").size();
     }
 
+
+    /**
+     *
+     * @return total number of urls that are indexed
+     */
     public double getTotalDocumentSize() {
         return totalDocuments;
     }
 
-    // going though each term in url sets and count how many urls are there
 
-    //find idf - number of document over number of document it appears
+
+    /**
+     * Going though each term in URLSet and count how many members(urls) are there.
+     * idf = log of fraction of number of urls that are indexed over number of urls that contain a term.
+     */
     private void processIdf() {
 
 
         Set<String> terms = jedis.keys("URLSet:*");
-       // System.out.println(terms.size());
 
 
         for(String key : terms){
 
-            double idfScore = getTotalDocumentSize()/jedis.smembers(key).size();
+          //  System.out.println("Total Document : " + getTotalDocumentSize() + " Contained Document : " + jedis.smembers(key).size());
+            double idfScore = logBaseTwo(getTotalDocumentSize()/jedis.smembers(key).size());
             idf.put(getKeyForIdf(key) , f.format(idfScore));
            // System.out.println(getKeyForIdf(key) + " : " +  f.format(idfScore));
         }
@@ -50,19 +61,56 @@ public class TfIdf {
 
     }
 
+
+    /**
+     *
+     * @param score
+     * @return log base 2 score
+     */
+    private double logBaseTwo(double score) {
+      //  System.out.println(score);
+       // System.out.println(Math.log(score)/Math.log(2));
+        return Math.log(score)/Math.log(2);
+    }
+
+
+    /**
+     *
+     * @param key
+     * @return valid key for idf map
+     * Example : URLSet:foo  ====> foo
+     */
     private String getKeyForIdf(String key) {
         return key.substring(7);
     }
 
 
+    /**
+     *
+     * @param key
+     * @return Valid key for TF-IDF
+     */
+    private String getTfIdfKey(String key) {
+        //System.out.println(key);
+        return "TF-IDF:" + key.substring(12);
+    }
+
+
+
+    /**
+     *
+     * @param term
+     * @return idf score of the given term
+     */
     private double getIdfOfTerm(String term) {
         return Double.parseDouble(idf.get(term)) ;
     }
 
-    private String getTfIdfKey(String key) {
-        return "TF-IDF:" + key.substring(12);
-    }
 
+    /**
+     *  Store the data to redis.
+     *  Key form -> "TF-IDF:https://stackoverflow.com~"
+     */
     public void processTfIdf() {
 
         processIdf();
@@ -76,8 +124,9 @@ public class TfIdf {
 
             for(String key : map.keySet()) {
 
-                Double totalScore = getIdfOfTerm(key) + Double.parseDouble(map.get(key));
-                jedis.hset(getTfIdfKey(url), key, f.format(totalScore).toString());
+                String totalScore = f.format(getIdfOfTerm(key) + Double.parseDouble(map.get(key)));
+                jedis.zadd(getTfIdfKey(url), Double.parseDouble(totalScore), key);
+              //  jedis.hset(getTfIdfKey(url), key, f.format(totalScore).toString());
 
             }
         }
