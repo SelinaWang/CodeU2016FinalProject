@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import redis.clients.jedis.Jedis;
@@ -155,26 +156,36 @@ public class JedisIndex {
 	 * 
 	 * @param url         URL of the page.
 	 * @param aListElements - List of Elements of question and answers
-	 * @param relatedTerms -  linked and related terms
+	 * @param questions -  linked and related questions as elements
 	 */
-	public void indexPage(String url, List<Elements> aListElements, Elements relatedTerms) {
+	public void indexPage(String url, List<Elements> aListElements, Elements questions) {
 		System.out.println("Indexing " + url);
 		
 		// make a TermCounter and count the terms in the paragraphs
-		// make a PageRacnker and count the terms in the header question, linked questions, and related questions.
 		TermCounter tc = new TermCounter(url);
-		PageRanker pr = new PageRanker(url);
 
 
-		//processing for Termcounter and PageRacnker
+		//processing for Termcounter and PageRanker
 		for(Elements elements : aListElements) {
 			tc.processElements(elements);
 		}
 
-		if(relatedTerms != null) {
-			pr.processElements(relatedTerms);
-			// push the contets of the PageRacnker to Redis
-			pushPageRackerToRedis(pr);
+		//When questions are not null, store in jedis
+		if(questions != null) {
+
+			//going though each question
+			for (Element questionTerm: questions) {
+
+				//get hyperlink for the question and create new pageranker for question url.
+				//System.out.println(questionTerm.attr("href") + "\n" + questionTerm.text());
+				PageRanker pr = new PageRanker("https://stackoverflow.com" + questionTerm.attr("href"));
+
+				pr.processElements(questionTerm);
+
+				// push the contents of the PageRanker to Redis
+				pushPageRackerToRedis(pr);
+			}
+
 		}
 
 		// push the contents of the TermCounter to Redis
@@ -373,20 +384,21 @@ public class JedisIndex {
 	 * @return
 	 * @throws IOException
 	 */
-	private static void loadIndex(JedisIndex index) throws IOException {
-		SOFFetcher wf = new SOFFetcher();
+	public static void loadIndex(JedisIndex index) throws IOException {
 
-		List<Elements> list = new ArrayList<Elements>();
 
-		String url = "http://stackoverflow.com/questions/450903/how-to-make-div-not-larger-than-its-contents?rq=1";
-		Document doc = wf.getDocument(url);
+		SOFCrawler test = new SOFCrawler("https://stackoverflow.com", index);
 
-		list.add(wf.readStackoverflow(doc, "question"));
-		list.add(wf.readStackoverflow(doc, "answer"));
-		index.indexPage(url, list, wf.allRelatedAndLinked(doc));
-		
-		//url = "https://en.wikipedia.org/wiki/Programming_language";
-		//paragraphs = wf.readWikipedia(url);
-		//index.indexPage(url, paragraphs);
+
+		for(int i = 0; i < 100; i++) {
+			String res = null;
+			try {
+				res = test.crawl();
+			} catch (IOException e) {
+				System.out.println("404 error");
+			}
+			if(res == null)
+				i--;
+		}
 	}
 }

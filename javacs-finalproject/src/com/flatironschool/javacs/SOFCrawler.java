@@ -52,7 +52,7 @@ public class SOFCrawler {
         //when index, figure out which part to index
 
 
-        index.indexPage(url, eleList, wf.allRelatedAndLinked(doc));
+        index.indexPage(url, eleList, wf.relatedAndLinked(doc));
 
         findInternalLinks(contents);
 

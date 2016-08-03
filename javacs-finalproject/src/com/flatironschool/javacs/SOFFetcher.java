@@ -15,7 +15,7 @@ import org.jsoup.select.Elements;
 
 public class SOFFetcher {
 	private long lastRequestTime = -1;
-	private long minInterval = 1000;
+	private long minInterval = 500;
 
 
 
@@ -53,7 +53,7 @@ public class SOFFetcher {
 		Elements question = doc.getElementsByClass(className).select("p");
 		return question;
 	}
-
+/**
 	public Elements allRelatedAndLinked(Document doc) throws IOException {
 
 		Elements all = new Elements();
@@ -77,8 +77,8 @@ public class SOFFetcher {
 		Elements headers = questionHeader == null? null : questionHeader.select("h1");
 		return headers;
 	}
-
-	private Elements relatedAndLinked(Document doc) throws IOException {
+**/
+	public Elements relatedAndLinked(Document doc) throws IOException {
 
 		Elements linked = doc.getElementsByClass("question-hyperlink");
 		//System.out.println(linked.toString());

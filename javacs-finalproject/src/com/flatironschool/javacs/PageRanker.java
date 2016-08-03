@@ -1,5 +1,6 @@
 package com.flatironschool.javacs;
 
+import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
@@ -45,12 +46,10 @@ public class PageRanker {
      *
      * @param contents
      */
-    public void processElements(Elements contents) {
+    public void processElements(Element contents) {
 
-        for (Node node: contents) {
-            //System.out.println(node.toString());
-            processTree(node);
-        }
+        processTree((Node)contents);
+
     }
 
     /**
