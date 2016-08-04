@@ -13,12 +13,20 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 
+//make connection to given url and contain method that returns elements as requested.
+
 public class SOFFetcher {
+
 	private long lastRequestTime = -1;
 	private long minInterval = 500;
 
 
-
+	/**
+	 *
+	 * @param url
+	 * @return document of given url - html text
+	 * @throws IOException
+     */
 	public Document getDocument(String url) throws IOException {
 
 		sleepIfNeeded();
@@ -32,7 +40,7 @@ public class SOFFetcher {
 	/**
 	 * Fetches and parses a URL string, returning a list of paragraph elements.
 	 *
-	 * @param url
+	 * @param doc
 	 * @return
 	 * @throws IOException
 	 */
@@ -47,40 +55,49 @@ public class SOFFetcher {
 
 	}
 
+	/**
+	 *
+	 * Return paragraphs of given class name
+	 * ex) if class name is question, it will return all paragraphs in question div class.
+	 * @param doc
+	 * @param className
+	 * @return paragraphs
+	 * @throws IOException
+     */
 	public Elements readStackoverflow(Document doc, String className) throws IOException {
 
 
-		Elements question = doc.getElementsByClass(className).select("p");
-		return question;
-	}
-/**
-	public Elements allRelatedAndLinked(Document doc) throws IOException {
+		Elements paragraphs = doc.getElementsByClass(className).select("p");
+		return paragraphs;
 
-		Elements all = new Elements();
-		Elements headerElements = readHeader(doc);
-		Elements relatedLinked = relatedAndLinked(doc);
-
-
-		if(headerElements != null ) {
-			all = headerElements;
-		}
-		if(relatedLinked != null) {
-			all.addAll(relatedLinked);
-		}
-
-		return all;
 	}
 
-	private Elements readHeader(Document doc) throws IOException {
+	/**
+	 *
+	 * @param doc
+	 * @return title of the question
+	 * @throws IOException
+     */
+	public Elements readHeadQeustion(Document doc) throws IOException {
 
 		Element questionHeader = doc.getElementById("question-header");
 		Elements headers = questionHeader == null? null : questionHeader.select("h1");
 		return headers;
 	}
-**/
+
+	/**
+	 *
+	 * @param doc
+	 * @return paragraphs of related or linked questions
+	 * @throws IOException
+     */
 	public Elements relatedAndLinked(Document doc) throws IOException {
 
-		Elements linked = doc.getElementsByClass("question-hyperlink");
+		Elements linked = doc.select("div.linked a.question-hyperlink ");
+		Elements related = doc.select("div.related a.question-hyperlink");
+		//Elements linked = doc.getElementsByClass("linked").getElementsByClass("question-hyperlink");
+
+		linked.addAll(related);
 		//System.out.println(linked.toString());
 		return linked;
 	}
