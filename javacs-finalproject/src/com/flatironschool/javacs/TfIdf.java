@@ -115,17 +115,27 @@ public class TfIdf {
 
         processIdf();
 
+        //get all urls in term counter.
         Set<String> urls = jedis.keys("TermCounter:*");
+
         Map<String, String> map;
 
+
+        //going though the url in the url set
         for(String url : urls) {
 
+            //get member from current url, which is a map that maps from term to term frequency
             map = jedis.hgetAll(url);
 
+            //going though each term
             for(String key : map.keySet()) {
 
-                String totalScore = f.format(getIdfOfTerm(key) + Double.parseDouble(map.get(key)));
+                //get total score = idf * tf
+                String totalScore = f.format(getIdfOfTerm(key) * Double.parseDouble(map.get(key)));
+
+                //store in jedis
                 jedis.zadd(getTfIdfKey(url), Double.parseDouble(totalScore), key);
+                
               //  jedis.hset(getTfIdfKey(url), key, f.format(totalScore).toString());
 
             }
