@@ -135,7 +135,7 @@ public class TfIdf {
 
                 //store in jedis
                 jedis.zadd(getTfIdfKey(url), Double.parseDouble(totalScore), key);
-                
+
               //  jedis.hset(getTfIdfKey(url), key, f.format(totalScore).toString());
 
             }
