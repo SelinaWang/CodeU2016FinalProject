@@ -37,7 +37,13 @@ public class WikiSearch {
 	 * @return
 	 */
 	public Integer getRelevance(String url) {
-		Integer relevance = map.get(url);
+		Integer tf = map.get(url);
+		Set<String> set = jedis.smembers(urlSetKey(term));
+		Integer urlCounter = 0;
+		for (String url: set) {
+			urlCounter++;
+		}
+		Integer idf = s
 		return relevance==null ? 0: relevance;
 	}
 	
@@ -86,7 +92,7 @@ public class WikiSearch {
 	}
 	
 	/**
-	 * Computes the intersection of two search results.
+	 * Computes the difference of two search results.
 	 * 
 	 * @param that
 	 * @return New WikiSearch object.
