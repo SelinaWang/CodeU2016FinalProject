@@ -11,7 +11,7 @@ import java.util.Set;
 /**
  * Created by Chohee on 8/3/16.
  */
-public class TfIdf {
+public class TFIDF {
 
     private Jedis jedis;
 
@@ -21,7 +21,7 @@ public class TfIdf {
     private DecimalFormat f = new DecimalFormat("##.00");
 
 
-    public TfIdf(Jedis jedis) {
+    public TFIDF(Jedis jedis) {
 
         this.jedis = jedis;
         idf = new HashMap<>();
@@ -52,7 +52,7 @@ public class TfIdf {
         for(String key : terms){
 
           //  System.out.println("Total Document : " + getTotalDocumentSize() + " Contained Document : " + jedis.smembers(key).size());
-            double idfScore = logBaseTwo(getTotalDocumentSize()/jedis.smembers(key).size());
+            double idfScore = Math.log(getTotalDocumentSize()/jedis.smembers(key).size());
             idf.put(getKeyForIdf(key) , f.format(idfScore));
            // System.out.println(getKeyForIdf(key) + " : " +  f.format(idfScore));
         }
@@ -62,16 +62,6 @@ public class TfIdf {
     }
 
 
-    /**
-     *
-     * @param score
-     * @return log base 2 score
-     */
-    private double logBaseTwo(double score) {
-      //  System.out.println(score);
-       // System.out.println(Math.log(score)/Math.log(2));
-        return Math.log(score)/Math.log(2);
-    }
 
 
     /**
@@ -130,8 +120,9 @@ public class TfIdf {
             //going though each term
             for(String key : map.keySet()) {
 
-                //get total score = idf * tf
-                String totalScore = f.format(getIdfOfTerm(key) * Double.parseDouble(map.get(key)));
+                //get total score = idf *( 1 + log of tf)
+                Double tf_scheme3 = 1 + Math.log(Double.parseDouble(map.get(key)));
+                String totalScore = f.format(getIdfOfTerm(key) * tf_scheme3);
 
                 //store in jedis
                 jedis.zadd(getTfIdfKey(url), Double.parseDouble(totalScore), key);
@@ -153,7 +144,7 @@ public class TfIdf {
             e.printStackTrace();
         }
 
-        TfIdf test = new TfIdf(jedis);
+        TFIDF test = new TFIDF(jedis);
 
         test.processIdf();
         //System.out.println(idf.size());
