@@ -76,6 +76,7 @@ public class TermCounter {
 	 */
 	public void processText(String text) {
 		// replace punctuation with spaces, convert to lower case, and split on whitespace
+		//women s
 		String[] array = text.replaceAll("\\pP", " ").toLowerCase().split("\\s+");
 		
 		for (int i=0; i<array.length; i++) {
