@@ -23,8 +23,6 @@ public class JedisMaker {
 	 * @throws IOException
 	 */
 	public static Jedis make() throws IOException {
-
-
 		// assemble the directory name
 		String slash = File.separator;
 		String filename = "resources" + slash + "redis_url.txt";
