@@ -9,7 +9,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.net.URL;
+import java.net.URLDecoder;
 
 import org.jsoup.select.Elements;
 
@@ -24,15 +28,15 @@ import redis.clients.jedis.Transaction;
 public class StopWords {
 
 	// map from stop words to null
-	private Map<String, Integer> map;
+	private Set<String> set;
 
 	/**
 	 * Constructor.
 	 * 
 	 * @param map
 	 */
-	public StopWords(Map<String, Integer> map) {
-		this.map = map;
+	public StopWords(Set<String> set) {
+		this.set = set;
 	}
 
 	/**
@@ -41,21 +45,42 @@ public class StopWords {
 	 * @param
 	 * @return
 	 */
-	public static StopWords build() {
-		Map<String, Integer> map = new HashMap<String, Integer>();
+	public static StopWords build() throws IOException{
+		Set<String> ourSet = new HashSet<String>();
+		
+		String filename = "resources/stopwords.txt";
+		URL fileURL = StopWords.class.getClassLoader().getResource(filename);
+		String filepath = URLDecoder.decode(fileURL.getFile(), "UTF-8");
+
+        BufferedReader br;
 
 		try{
-			BufferedReader br = new BufferedReader(new FileReader("stopwords.txt"));
-			String line;
- 
-            while ((line = br.readLine()) != null) {
-                map.put(line, null);
+			br = new BufferedReader(new FileReader(filepath));
+
+            while (true) {
+            	String line = br.readLine();
+            	
+            	if (line == null) break;
+                ourSet.add(line);
             }
             br.close();
-        }
-        finally {
-			return new StopWords(map);
+        } catch (FileNotFoundException e1) {
+			System.out.println("File not found: " + filename);
+			return null;
 		}
+        finally {
+			return new StopWords(ourSet);
+		}
+	}
+
+	public void printStopWords() {
+		int i = 0;
+		for(String str: set) {
+			System.out.print(i + " ");
+			System.out.println(str);
+			i++;
+		}
+
 	}
 
 	/**
@@ -66,11 +91,13 @@ public class StopWords {
 	 */
 
 	public boolean exists(String term) {
-		return map.containsKey(term);
+		return set.contains(term);
 	}
 
 	public static void main(String[] args) throws IOException {
 		StopWords dict = StopWords.build();
+		System.out.println("Printing built dictionary");
+		dict.printStopWords();
 	}
 	
 }
