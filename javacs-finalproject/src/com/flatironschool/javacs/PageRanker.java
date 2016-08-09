@@ -3,7 +3,6 @@ package com.flatironschool.javacs;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
-import org.jsoup.select.Elements;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -52,6 +51,7 @@ public class PageRanker {
 
     }
 
+
     /**
      * Finds TextNodes in a DOM tree and counts their words.
      *
@@ -60,8 +60,8 @@ public class PageRanker {
     public void processTree(Node root) {
         // NOTE: we could use select to find the TextNodes, but since
         // we already have a tree iterator, let's use it.
-        for (Node node: new SOFNodeIterable(root)) {
-            if (node instanceof TextNode) {
+        for (Node node: new WebNodeIterable(root)) {
+            if (node instanceof TextNode ) {
                 processText(((TextNode) node).text());
             }
         }
@@ -77,8 +77,12 @@ public class PageRanker {
         String[] array = text.replaceAll("\\pP", " ").toLowerCase().split("\\s+");
 
         for (int i=0; i<array.length; i++) {
+
             String term = array[i];
-            incrementTermCount(term);
+
+            //do not store the or a.
+            if(!StopWords.set.contains(term))
+                incrementTermCount(term);
         }
     }
 
