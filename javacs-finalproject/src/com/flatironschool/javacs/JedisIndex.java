@@ -1,21 +1,15 @@
 package com.flatironschool.javacs;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
+import java.util.concurrent.*;
 
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
-import sun.jvm.hotspot.debugger.Page;
 
 /**
  * Represents a Redis-backed web search index.
@@ -30,9 +24,10 @@ public class JedisIndex {
 	 * 
 	 * @param jedis
 	 */
-	public JedisIndex(Jedis jedis) {
+	public JedisIndex(Jedis jedis) throws IOException {
 
 		this.jedis = jedis;
+
 	}
 	
 	/**
@@ -151,14 +146,16 @@ public class JedisIndex {
 		return new Integer(count);
 	}
 
+
+
 	/**
 	 * Add a page to the index.
 	 * 
 	 * @param url         URL of the page.
-	 * @param aListElements - List of Elements of question and answers
+	 * @param aListElements - List of Elements of question,answers, and title of questions.
 	 * @param questions -  linked and related questions as elements
 	 */
-	public void indexPage(String url, List<Elements> aListElements, Elements questions) {
+	public void indexPage(String url, List<Elements> aListElements, Elements questions) throws IOException {
 		System.out.println("Indexing " + url);
 		
 		// make a TermCounter and count the terms in the paragraphs
@@ -167,39 +164,90 @@ public class JedisIndex {
 
 		//processing for Termcounter and PageRanker
 		for(Elements elements : aListElements) {
-			tc.processElements(elements);
+			if(elements != null) {
+				tc.processElements(elements);
+			}
+
 		}
 
+		//System.out.println(questions.toString());
+
+		//wikipedia case
+		if(questions != null) {
+
+			for(Element term : questions) {
+
+				for(Element a : term.select("a[href]")) {
+
+					if (a.attr("href").startsWith("/wiki/")) {
+
+						WikiPageRanker pr = new WikiPageRanker("https://en.wikipedia.org" + a.attr("href"));
+						//System.out.println(a.toString());
+						pr.processElements(a.attr("title"));
+						//System.out.println("Term : " + a.attr("title") + " Link: " + a.attr("href"));
+						pushPageRankerToRedisWiki(pr);
+					}
+
+				}
+			}
+		}
+
+
+		/**
+		//stackoverflow case
 		//When questions are not null, store in jedis
 		if(questions != null) {
 
 			//going though each question
 			for (Element questionTerm: questions) {
 
-				//get hyperlink for the question and create new pageranker for question url.
-				//System.out.println(questionTerm.attr("href") + "\n" + questionTerm.text());
-				PageRanker pr = new PageRanker("https://stackoverflow.com" + questionTerm.attr("href"));
+				PageRanker pr = null;
+				System.out.println(questionTerm);
 
+				//get hyperlink for the question and create new pageranker for question url.
+				pr = new PageRanker("https://stackoverflow.com" + questionTerm.attr("href"));
 				pr.processElements(questionTerm);
 
+
 				// push the contents of the PageRanker to Redis
-				pushPageRackerToRedis(pr);
+				pushPageRankerToRedis(pr);
 			}
 
 		}
 
+		 **/
 		// push the contents of the TermCounter to Redis
 		pushTermCounterToRedis(tc);
 
 
 	}
 
+	/**
+	 *  Pushes the contents of PageRacker to Redis
+	 * @param pr
+	 */
+	public void pushPageRankerToRedisWiki(WikiPageRanker pr) {
+
+
+		String url = pr.getURL();
+
+		Transaction t = jedis.multi();
+
+
+		//used the jedis data structure called sorted set.
+		for(String term : pr.keySet()) {
+			//System.out.println(term);
+			t.zincrby(pageRankKey(term), pr.get(term), url);
+		}
+
+		t.exec();
+	}
 
 	/**
 	 *  Pushes the contents of PageRacker to Redis
 	 * @param pr
      */
-	public void pushPageRackerToRedis(PageRanker pr) {
+	public void pushPageRankerToRedis(PageRanker pr) {
 
 
 		String url = pr.getURL();
@@ -245,24 +293,6 @@ public class JedisIndex {
 		return res;
 	}
 
-	/**
-	 * Prints the contents of the index.
-	 * 
-	 * Should be used for development and testing, not production.
-	 */
-	public void printIndex() {
-		// loop through the search terms
-		for (String term: termSet()) {
-			System.out.println(term);
-			
-			// for each term, print the pages where it appears
-			Set<String> urls = getURLs(term);
-			for (String url: urls) {
-				Integer count = getCount(url, term);
-				System.out.println("    " + url + " " + count);
-			}
-		}
-	}
 
 	/**
 	 * Returns the set of terms that have been indexed.
@@ -358,24 +388,32 @@ public class JedisIndex {
 	}
 
 	/**
-	 * @param args
+	 * @param
 	 * @throws IOException 
 	 */
-	public static void main(String[] args) throws IOException {
+	public static void main() throws IOException, InterruptedException {
 
 		//test here
+
 		Jedis jedis = JedisMaker.make();
 		JedisIndex index = new JedisIndex(jedis);
 
-		index.deleteTermCounters();
-		index.deleteURLSets();
-		index.deleteAllKeys();
-		loadIndex(index);
-		
+		//index.deleteTermCounters();
+		//index.deleteURLSets();
+		//index.deleteAllKeys();
+		//index.loadIndex(index);
+
+		/**
 		Map<String, Integer> map = index.getCountsFaster("the");
 		for (Entry<String, Integer> entry: map.entrySet()) {
 			System.out.println(entry);
 		}
+		 **/
+	}
+
+	private long transToMilSeconds(double minutes) {
+
+		return (long)(minutes * 60000);
 	}
 
 	/**
@@ -384,21 +422,87 @@ public class JedisIndex {
 	 * @return
 	 * @throws IOException
 	 */
-	public static void loadIndex(JedisIndex index) throws IOException {
+	public void loadIndex(JedisIndex index, String source) throws IOException, InterruptedException {
+
+		//index.jedis.flushAll();
+
+		ThreadPoolExecutor pool = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+
+		//Thread safe queues
+		LinkedBlockingQueue<String> urlsToIndex = new LinkedBlockingQueue<>();
+		LinkedBlockingQueue<DocAndUrl> downloadedURLS = new LinkedBlockingQueue<>();
 
 
-		SOFCrawler test = new SOFCrawler("https://stackoverflow.com", index);
+		//starting point here
+		Runnable run1 = new WebFetcher(source, downloadedURLS);
+		new Thread(run1).start();
 
 
-		for(int i = 0; i < 100; i++) {
-			String res = null;
-			try {
-				res = test.crawl();
-			} catch (IOException e) {
-				System.out.println("404 error");
+		//First thread - indexing by invoking Crawler class
+		//Crawl the document and url that are downloaded.
+		//indexing once a time because jedis is not thread safe
+
+		Thread t = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				for (;;) {
+					try {
+						DocAndUrl docAndUrl = downloadedURLS.take();
+						/**
+						if (docAndUrl == null) {
+							//Thread.sleep(5000);
+							continue;
+						}
+
+						 **/
+						new WebCrawler(index, urlsToIndex).crawl(docAndUrl.getURL(), docAndUrl.getDocument());
+					} catch (InterruptedException e) {
+						//e.printStackTrace();
+						break;
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
 			}
-			if(res == null)
-				i--;
+		});
+		t.start();
+
+
+		//Multi threads - fetch urls and put them in a queue
+		long startT = System.currentTimeMillis();
+		for (;;) {
+
+			String url = urlsToIndex.poll(5, TimeUnit.SECONDS);
+
+
+			// index a limited number of pages
+			// once this limit is hit, stop scheduling new pages to be downloaded
+			if(startT + transToMilSeconds(0.5) < System.currentTimeMillis()) {
+
+				pool.getQueue().clear();
+				pool.shutdown();
+				pool.awaitTermination(2, TimeUnit.SECONDS);
+				break;
+			}
+
+			pool.execute(new WebFetcher(url, downloadedURLS));
 		}
+
+
+
+		pool.shutdown();
+		while (!pool.isTerminated()) {
+			pool.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+		}
+		t.interrupt();
+		t.join();
+		System.out.println(Thread.activeCount());
+
+
+
+	}
+
+	public void close() {
+		this.jedis.close();
 	}
 }
