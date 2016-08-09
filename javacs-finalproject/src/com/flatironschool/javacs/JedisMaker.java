@@ -23,9 +23,7 @@ public class JedisMaker {
 	 * @throws IOException
 	 */
 	public static Jedis make() throws IOException {
-
-
-		// assemble the file name
+		// assemble the directory name
 		String slash = File.separator;
 		String filename = "resources" + slash + "redis_url.txt";
 		URL fileURL = JedisMaker.class.getClassLoader().getResource(filename);
@@ -34,11 +32,11 @@ public class JedisMaker {
                 StringBuilder sb = new StringBuilder();
 		BufferedReader br;
 		try {
-                    br = new BufferedReader(new FileReader(filepath));
+			br = new BufferedReader(new FileReader(filepath));
 		} catch (FileNotFoundException e1) {
-                    System.out.println("File not found: " + filename);
-                    printInstructions();
-                    return null;
+			System.out.println("File not found: " + filename);
+			printInstructions();
+			return null;
 		}
 
 		while (true) {

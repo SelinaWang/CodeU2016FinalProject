@@ -1,4 +1,3 @@
-
 package com.flatironschool.javacs;
 
 import java.io.File;
@@ -25,7 +24,6 @@ public class WikiFetcher {
 	 * @throws IOException
 	 */
 	public Elements fetchWikipedia(String url) throws IOException {
-
 		sleepIfNeeded();
 
 		// download and parse the document
