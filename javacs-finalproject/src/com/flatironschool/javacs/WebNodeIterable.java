@@ -20,7 +20,7 @@ import org.jsoup.nodes.Node;
  * @author downey
  *
  */
-public class SOFNodeIterable implements Iterable<Node> {
+public class WebNodeIterable implements Iterable<Node> {
 
 	private Node root;
 
@@ -29,7 +29,7 @@ public class SOFNodeIterable implements Iterable<Node> {
 	 * 
 	 * @param root
 	 */
-	public SOFNodeIterable(Node root) {
+	public WebNodeIterable(Node root) {
 	    this.root = root;
 	}
 
