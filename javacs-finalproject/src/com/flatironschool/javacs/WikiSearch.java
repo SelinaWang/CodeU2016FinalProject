@@ -36,16 +36,22 @@ public class WikiSearch {
 	 * @param url
 	 * @return
 	 */
+
 	public Integer getRelevance(String url) {
-		Integer tf = map.get(url);
-		Set<String> set = jedis.smembers(urlSetKey(term));
-		Integer urlCounter = 0;
-		for (String url: set) {
-			urlCounter++;
-		}
-		Integer idf = s
+		Integer relevance = map.get(url);
 		return relevance==null ? 0: relevance;
 	}
+
+	// public Integer getRelevance(String url) {
+	// 	Integer tf = map.get(url);
+	// 	Set<String> set = jedis.smembers(urlSetKey(term));
+	// 	Integer urlCounter = 0;
+	// 	for (String url: set) {
+	// 		urlCounter++;
+	// 	}
+	// 	Integer relevance = tf * urlCounter;
+	// 	return relevance==null ? 0: relevance;
+	// }
 	
 	/**
 	 * Prints the contents in order of term frequency.

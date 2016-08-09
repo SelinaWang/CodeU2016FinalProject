@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 import org.jsoup.select.Elements;
 
@@ -22,14 +24,14 @@ import redis.clients.jedis.Transaction;
 public class StopWords {
 
 	// map from stop words to null
-	private Map<String, null> map;
+	private Map<String, Integer> map;
 
 	/**
 	 * Constructor.
 	 * 
 	 * @param map
 	 */
-	public StopWords(Map<String, null> map) {
+	public StopWords(Map<String, Integer> map) {
 		this.map = map;
 	}
 
@@ -40,17 +42,20 @@ public class StopWords {
 	 * @return
 	 */
 	public static StopWords build() {
-		Map<String, null> map = new HashMap<String, null>();
+		Map<String, Integer> map = new HashMap<String, Integer>();
 
-		try(BufferedReader br = new BufferedReader(new FileReader("stopwords.txt"))) {
+		try{
+			BufferedReader br = new BufferedReader(new FileReader("stopwords.txt"));
 			String line;
  
-            while ((line = bufferedReader.readLine()) != null) {
+            while ((line = br.readLine()) != null) {
                 map.put(line, null);
             }
-            reader.close();
+            br.close();
         }
-		return new StopWords(map);
+        finally {
+			return new StopWords(map);
+		}
 	}
 
 	/**
@@ -60,8 +65,12 @@ public class StopWords {
 	 * @return boolean
 	 */
 
-	public static boolean exists(String term) {
+	public boolean exists(String term) {
 		return map.containsKey(term);
+	}
+
+	public static void main(String[] args) throws IOException {
+		StopWords dict = StopWords.build();
 	}
 	
 }
