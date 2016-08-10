@@ -17,15 +17,18 @@ public class TFIDF {
 
     private double totalDocuments; //total number of documents that is indexed - number of keys in TermCounters
     private Map<String, String> idf; //Map term to idf score
+    private String websiteOtp;
 
     private DecimalFormat f = new DecimalFormat("##.00");
 
 
-    public TFIDF(Jedis jedis) {
+    public TFIDF(Jedis jedis, String websiteOtp) {
 
         this.jedis = jedis;
+        this.websiteOtp = websiteOtp;
         idf = new HashMap<>();
-        totalDocuments = jedis.keys("TermCounter:*").size();
+        totalDocuments = jedis.keys(websiteOtp + "TermCounter:*").size();
+
     }
 
 
@@ -46,18 +49,15 @@ public class TFIDF {
     private void processIdf() {
 
 
-        Set<String> terms = jedis.keys("URLSet:*");
+        Set<String> terms = jedis.keys(websiteOtp + "URLSet:*");
 
 
         for(String key : terms){
 
-          //  System.out.println("Total Document : " + getTotalDocumentSize() + " Contained Document : " + jedis.smembers(key).size());
             double idfScore = Math.log(getTotalDocumentSize()/jedis.smembers(key).size());
             idf.put(getKeyForIdf(key) , f.format(idfScore));
-           // System.out.println(getKeyForIdf(key) + " : " +  f.format(idfScore));
         }
 
-        //System.out.println(idf.size());
 
     }
 
@@ -68,10 +68,14 @@ public class TFIDF {
      *
      * @param key
      * @return valid key for idf map
-     * Example : URLSet:foo  ====> foo
+     * Example : stackoverflowURLSet:foo  ====> foo
      */
     private String getKeyForIdf(String key) {
-        return key.substring(7);
+        if(websiteOtp.equals("wiki")) {
+            return key.substring(11);
+        }else {
+            return key.substring(20);
+        }
     }
 
 
@@ -79,10 +83,14 @@ public class TFIDF {
      *
      * @param key
      * @return Valid key for TF-IDF
+     * stackoverflowTermCounter:hhh ->
      */
     private String getTfIdfKey(String key) {
-        //System.out.println(key);
-        return "TF-IDF:" + key.substring(12);
+        if(websiteOtp.equals("wiki")) {
+            return websiteOtp + "TF-IDF:" + key.substring(16);
+        }else {
+            return websiteOtp + "TF-IDF:" +key.substring(25);
+        }
     }
 
 
@@ -106,7 +114,7 @@ public class TFIDF {
         processIdf();
 
         //get all urls in term counter.
-        Set<String> urls = jedis.keys("TermCounter:*");
+        Set<String> urls = jedis.keys(websiteOtp + "TermCounter:*");
 
         Map<String, String> map;
 
@@ -134,26 +142,7 @@ public class TFIDF {
 
     }
 
-    public static void main(String[] args) {
 
-
-        Jedis jedis = new Jedis();
-        try {
-           jedis = JedisMaker.make();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        TFIDF test = new TFIDF(jedis);
-
-        test.processIdf();
-        //System.out.println(idf.size());
-        //System.out.println(key);
-
-       // System.out.println(test.getTotalDocumentSize());
-        test.processTfIdf();
-
-    }
 }
 
 

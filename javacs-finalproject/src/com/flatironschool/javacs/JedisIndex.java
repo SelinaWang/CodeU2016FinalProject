@@ -18,17 +18,20 @@ import redis.clients.jedis.Transaction;
 public class JedisIndex {
 
 	private Jedis jedis;
+	private String websiteOpt; //either wiki or stackoverflow
 
 	/**
 	 * Constructor.
 	 * 
 	 * @param jedis
 	 */
-	public JedisIndex(Jedis jedis) throws IOException {
+	public JedisIndex(Jedis jedis, String websiteOpt) throws IOException {
 
 		this.jedis = jedis;
+		this.websiteOpt = websiteOpt;
 
 	}
+
 	
 	/**
 	 * Returns the Redis key for a given search term.
@@ -37,7 +40,7 @@ public class JedisIndex {
 	 */
 	private String urlSetKey(String term) {
 
-		return "URLSet:" + term;
+		return websiteOpt + "URLSet:" + term;
 	}
 	
 	/**
@@ -46,12 +49,16 @@ public class JedisIndex {
 	 * @return Redis key.
 	 */
 	private String termCounterKey(String url) {
-		return "TermCounter:" + url;
+
+
+		return websiteOpt + "TermCounter:" + url;
+
 	}
 
 
 	private String pageRankKey(String term) {
-		return "PageRank:" + term;
+
+		return websiteOpt + "PageRank:" + term;
 	}
 	/**
 	 * Checks whether we have a TermCounter for a given URL.
@@ -170,52 +177,51 @@ public class JedisIndex {
 
 		}
 
-		//System.out.println(questions.toString());
 
 		//wikipedia case
-		if(questions != null) {
+		if(websiteOpt.equals("wiki")) {
+			if (questions != null) {
 
-			for(Element term : questions) {
+				for (Element term : questions) {
 
-				for(Element a : term.select("a[href]")) {
+					for (Element a : term.select("a[href]")) {
 
-					if (a.attr("href").startsWith("/wiki/")) {
+						if (a.attr("href").startsWith("/wiki/")) {
 
-						WikiPageRanker pr = new WikiPageRanker("https://en.wikipedia.org" + a.attr("href"));
-						//System.out.println(a.toString());
-						pr.processElements(a.attr("title"));
-						//System.out.println("Term : " + a.attr("title") + " Link: " + a.attr("href"));
-						pushPageRankerToRedisWiki(pr);
+							WikiPageRanker pr = new WikiPageRanker("https://en.wikipedia.org" + a.attr("href"));
+							//System.out.println(a.toString());
+							pr.processElements(a.attr("title"));
+							//System.out.println("Term : " + a.attr("title") + " Link: " + a.attr("href"));
+							pushPageRankerToRedisWiki(pr);
+						}
+
 					}
-
 				}
 			}
-		}
+		}else if(websiteOpt.equals("stackoverflow")) {
+
+			//When questions are not null, store in jedis
+			if (questions != null) {
+
+				//going though each question
+				for (Element questionTerm : questions) {
+
+					PageRanker pr = null;
+					//FSystem.out.println(questionTerm);
+
+					//get hyperlink for the question and create new pageranker for question url.
+					pr = new PageRanker("https://stackoverflow.com" + questionTerm.attr("href"));
+					pr.processElements(questionTerm);
 
 
-		/**
-		//stackoverflow case
-		//When questions are not null, store in jedis
-		if(questions != null) {
+					// push the contents of the PageRanker to Redis
+					pushPageRankerToRedis(pr);
+				}
 
-			//going though each question
-			for (Element questionTerm: questions) {
-
-				PageRanker pr = null;
-				System.out.println(questionTerm);
-
-				//get hyperlink for the question and create new pageranker for question url.
-				pr = new PageRanker("https://stackoverflow.com" + questionTerm.attr("href"));
-				pr.processElements(questionTerm);
-
-
-				// push the contents of the PageRanker to Redis
-				pushPageRankerToRedis(pr);
 			}
-
 		}
 
-		 **/
+
 		// push the contents of the TermCounter to Redis
 		pushTermCounterToRedis(tc);
 
@@ -302,7 +308,7 @@ public class JedisIndex {
 	 * @return
 	 */
 	public Set<String> termSet() {
-		Set<String> keys = urlSetKeys();
+		Set<String> keys = urlSetKeys(websiteOpt);
 		Set<String> terms = new HashSet<String>();
 		for (String key: keys) {
 			String[] array = key.split(":");
@@ -322,9 +328,10 @@ public class JedisIndex {
 	 * 
 	 * @return
 	 */
-	public Set<String> urlSetKeys() {
+	public Set<String> urlSetKeys(String websiteOpt) {
 
-		return jedis.keys("URLSet:*");
+
+		return jedis.keys(websiteOpt + "URLSet:*");
 	}
 
 	/**
@@ -336,80 +343,11 @@ public class JedisIndex {
 	 */
 	public Set<String> termCounterKeys() {
 
-		return jedis.keys("TermCounter:*");
+		return jedis.keys(websiteOpt + "TermCounter:*");
 	}
 
-	/**
-	 * Deletes all URLSet objects from the database.
-	 * 
-	 * Should be used for development and testing, not production.
-	 * 
-	 * @return
-	 */
-	public void deleteURLSets() {
-		Set<String> keys = urlSetKeys();
-		Transaction t = jedis.multi();
-		for (String key: keys) {
-			t.del(key);
-		}
-		t.exec();
-	}
 
-	/**
-	 * Deletes all URLSet objects from the database.
-	 * 
-	 * Should be used for development and testing, not production.
-	 * 
-	 * @return
-	 */
-	public void deleteTermCounters() {
-		Set<String> keys = termCounterKeys();
-		Transaction t = jedis.multi();
-		for (String key: keys) {
-			t.del(key);
-		}
-		t.exec();
-	}
 
-	/**
-	 * Deletes all keys from the database.
-	 * 
-	 * Should be used for development and testing, not production.
-	 * 
-	 * @return
-	 */
-	public void deleteAllKeys() {
-		Set<String> keys = jedis.keys("*");
-		Transaction t = jedis.multi();
-		for (String key: keys) {
-			t.del(key);
-		}
-		t.exec();
-	}
-
-	/**
-	 * @param
-	 * @throws IOException 
-	 */
-	public static void main() throws IOException, InterruptedException {
-
-		//test here
-
-		Jedis jedis = JedisMaker.make();
-		JedisIndex index = new JedisIndex(jedis);
-
-		//index.deleteTermCounters();
-		//index.deleteURLSets();
-		//index.deleteAllKeys();
-		//index.loadIndex(index);
-
-		/**
-		Map<String, Integer> map = index.getCountsFaster("the");
-		for (Entry<String, Integer> entry: map.entrySet()) {
-			System.out.println(entry);
-		}
-		 **/
-	}
 
 	private long transToMilSeconds(double minutes) {
 
@@ -434,6 +372,12 @@ public class JedisIndex {
 
 
 		//starting point here
+		if(source.equals("wiki")) {
+			source = "https://en.wikipedia.org/wiki/korea";
+		}else if(source.equals("stackoverflow")) {
+			source = "https://www.stackoverflow.com";
+		}
+
 		Runnable run1 = new WebFetcher(source, downloadedURLS);
 		new Thread(run1).start();
 
@@ -477,7 +421,7 @@ public class JedisIndex {
 
 			// index a limited number of pages
 			// once this limit is hit, stop scheduling new pages to be downloaded
-			if(startT + transToMilSeconds(0.5) < System.currentTimeMillis()) {
+			if(startT + transToMilSeconds(10) < System.currentTimeMillis()) {
 
 				pool.getQueue().clear();
 				pool.shutdown();
@@ -496,7 +440,6 @@ public class JedisIndex {
 		}
 		t.interrupt();
 		t.join();
-		System.out.println(Thread.activeCount());
 
 
 

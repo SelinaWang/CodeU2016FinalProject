@@ -183,7 +183,7 @@ public class WebCrawler {
         WebCrawler test = null;
         Queue<String> queue = new LinkedList<>();
         try {
-           index = new JedisIndex(new JedisMaker().make());
+          // index = new JedisIndex(new JedisMaker().make());
             test = new WebCrawler(index, queue);
         } catch (IOException e) {
             e.printStackTrace();

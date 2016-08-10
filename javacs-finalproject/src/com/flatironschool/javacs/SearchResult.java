@@ -30,7 +30,7 @@ public class SearchResult {
 
             String term = word.toLowerCase();
 
-            System.out.println(term);
+           // System.out.println(term);
             Set<String> urls = jedis.zrevrange(webstieOpt + "PageRank:" + term, 0, 100);
 
             if (urls.isEmpty()) {
@@ -59,7 +59,7 @@ public class SearchResult {
 
         int count = 0;
         for(String key : sortedMap.keySet()) {
-            if(count == 10 ) {
+            if(count == 20 ) {
                 break;
             }
 

@@ -93,8 +93,8 @@ public class StopWords {
 
     public static void main(String[] args) throws IOException {
         StopWords dict = StopWords.build();
-        System.out.println("Printing built dictionary");
-        dict.printStopWords();
+        //System.out.println("Printing built dictionary");
+        //dict.printStopWords();
     }
 
 }
