@@ -15,8 +15,8 @@ hs_err_pid*
 # Unnecessary file
 javacs-finalproject/out
 javacs-finalproject/junit
-javacs-finalproject/bin
 javacs-finalproject/src/javacs-lab12.iml
+javacs-finalproject/src/javacs-finalproject.iml
 .idea
 .DS_Store
 .class
